@@ -1,0 +1,365 @@
+        -:    0:Source:json.c
+        -:    0:Graph:json.gcno
+        -:    0:Data:json.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include <stdio.h>
+        -:    2:#include <stdlib.h>
+        -:    3:#include <stdbool.h>
+        -:    4:#include <assert.h>
+        -:    5:#include <ctype.h>
+        -:    6:#include <string.h>
+        -:    7:#include <limits.h>
+        -:    8:#include "clog.h"
+        -:    9:#include "json.h"
+        -:   10:
+       31:   11:bool parse_int(int* a_value, char const** a_pos) {
+        -:   12:	
+       31:   13:	char value = **a_pos;
+       31:   14:	bool found_int = false; 
+       31:   15:	int power = 0; // to determine if its multiple digits
+       31:   16:	bool is_negative = false;
+        -:   17:
+       31:   18:	if(value == '-') {
+       11:   19:		*a_pos += 1;
+       11:   20:		is_negative = true;
+        -:   21:	}
+       31:   22:	if(isdigit(**a_pos)) {
+       24:   23:		found_int = true;
+       24:   24:		*a_value = 0;
+        -:   25:	}
+       81:   26:	while(isdigit(**a_pos)) {
+       50:   27:		value = **a_pos;
+       50:   28:		*a_pos += 1;
+       50:   29:		if(power > 0) {
+       26:   30:			*a_value *= 10;
+        -:   31:		}
+       50:   32:		*a_value += value - '0';
+       50:   33:		value = **a_pos;
+       50:   34:		power = 1;
+        -:   35:	}
+       31:   36:	if(is_negative == true) {
+       11:   37:		*a_value *= -1;
+        -:   38:	}
+       31:   39:	return found_int;
+        -:   40:}
+        -:   41:
+       26:   42:bool parse_element(Element* a_element, char const** a_pos) {
+        -:   43:
+       26:   44:	bool found_element = false;
+        -:   45:
+       33:   46:	while(isspace(**a_pos)) {
+        7:   47:		*a_pos += 1;
+        -:   48:	}
+       26:   49:	if(isdigit(**a_pos) || ((**a_pos) == '-')) {
+       20:   50:		found_element = parse_int(&(a_element -> as_int), a_pos);
+       37:   51:		if(found_element) {
+       17:   52:			a_element->type = ELEMENT_INT;
+        -:   53:		}
+        -:   54:	}
+        6:   55:	else if(**a_pos == '"') {
+        5:   56:		found_element = parse_string(&(a_element -> as_string), a_pos);
+        5:   57:		if(found_element) {
+        5:   58:			a_element->type = ELEMENT_STRING;
+        -:   59:		}
+        -:   60:	}
+        1:   61:	else if(**a_pos == '[') {
+        1:   62:		found_element = parse_list(&(a_element -> as_list), a_pos);
+        1:   63:		if(found_element) {
+        1:   64:			a_element->type = ELEMENT_LIST;
+        -:   65:		}
+        -:   66:	}
+       26:   67:	return found_element;
+        -:   68:}
+        -:   69:
+       11:   70:bool parse_string(char** a_string, char const** a_pos) {
+        -:   71:
+       11:   72:	bool found_str = false;
+       11:   73:	int str_len = 0;
+       11:   74:	int add_shift = 0;
+       11:   75:	int escp_char = 0;
+        -:   76:
+       57:   77:	while(((**a_pos) != '\0') && ((**a_pos) != '\n') && (escp_char != 2)) {
+       46:   78:		if(**a_pos == '\"') {
+       18:   79:			*a_pos += 1;
+       18:   80:			escp_char++;
+       18:   81:			add_shift++;
+        -:   82:		}
+        -:   83:		else{
+       28:   84:			*a_pos += 1;
+       28:   85:			str_len++;
+       28:   86:			add_shift++;
+        -:   87:		}
+        -:   88:	}
+       11:   89:	*a_pos -= add_shift;
+       11:   90:	if((strchr(*a_pos, '\n') == NULL) && (escp_char % 2 == 0)){
+        9:   91:		found_str = true;
+        9:   92:		escp_char = 0;
+        -:   93:	} else{
+        2:   94:		*a_pos += add_shift;
+        -:   95:	}
+        -:   96:
+       11:   97:	if(found_str == true) {
+        9:   98:		*a_string = malloc((str_len + 1) * sizeof(**a_string));
+       51:   99:		for(int idx_in_str = 0; (((**a_pos) != '\0') && (escp_char != 2)); idx_in_str++) {
+       42:  100:			if(**a_pos != '\"') {
+       26:  101:				(*a_string)[idx_in_str] = (**a_pos);
+       26:  102:				*a_pos += 1;
+        -:  103:			}
+        -:  104:			else{
+       16:  105:				*a_pos += 1;
+       16:  106:				idx_in_str--;
+       16:  107:				escp_char++;
+        -:  108:			}
+        -:  109:		}
+        9:  110:		(*a_string)[str_len] = '\0';
+        -:  111:	}
+       11:  112:	return found_str;
+        -:  113:}
+        -:  114:
+        8:  115:void free_element(Element element) {
+        8:  116:	if(element.type == ELEMENT_STRING) {
+        4:  117:		free(element.as_string);
+        -:  118:	}
+        4:  119:	else if(element.type == ELEMENT_LIST) {
+        3:  120:		while(element.as_list->next != NULL) {
+        2:  121:			free_element(element.as_list->element);
+        2:  122:			Node* old_node = element.as_list;
+        2:  123:			element.as_list = element.as_list->next;
+        2:  124:			free(old_node);
+        -:  125:		}
+        1:  126:		free_element(element.as_list->element);
+        1:  127:		free(element.as_list);
+        -:  128:	}
+        8:  129:}
+        -:  130:
+        6:  131:void print_element(Element element) {
+        6:  132:	if(element.type == ELEMENT_INT) {
+        3:  133:		printf("%d", element.as_int);
+        -:  134:	}
+        3:  135:	else if(element.type == ELEMENT_STRING) {
+        2:  136:		printf("\"%s\"", element.as_string);
+        -:  137:	}
+        1:  138:	else if(element.type == ELEMENT_LIST) {
+        1:  139:		fputc('[', stdout);
+        3:  140:		while((element.as_list->next) != NULL) {
+        2:  141:			print_element(element.as_list->element);
+        2:  142:			fputc(',', stdout);
+        2:  143:			element.as_list = element.as_list->next;
+        -:  144:		}
+        1:  145:		print_element(element.as_list->element);
+        1:  146:		fputc(']', stdout);
+        -:  147:	}
+        6:  148:}
+        -:  149:
+        -:  150:/*bool parse_list(Node** a_head, char const** a_pos) {
+        -:  151:	bool found_list = false;
+        -:  152:	int start = 0;
+        -:  153:	int end = 0;
+        -:  154:	int increment = 0;
+        -:  155:	bool empty = true;
+        -:  156:	bool start_list = true;
+        -:  157:
+        -:  158:	if(**a_pos != '[') {
+        -:  159:		start_list = false;
+        -:  160:	}
+        -:  161:	else {
+        -:  162:		while((**a_pos) != '\0') {
+        -:  163:			if(**a_pos == '[') {
+        -:  164:				start++;
+        -:  165:			}
+        -:  166:			else if(**a_pos == ']') {
+        -:  167:				end++;
+        -:  168:			}
+        -:  169:			*a_pos += 1;
+        -:  170:			increment++;
+        -:  171:		}
+        -:  172:	}
+        -:  173:
+        -:  174:	if(start_list == true) {
+        -:  175:		*a_pos -= increment;
+        -:  176:		while((start_list == true) && (**a_pos != '\0')) {
+        -:  177:			if(**a_pos == ',') {
+        -:  178:				*a_pos += 1;
+        -:  179:				if(**a_pos == ',') {
+        -:  180:					start_list = false;
+        -:  181:				}
+        -:  182:				else {
+        -:  183:					*a_pos -= 1;
+        -:  184:				}
+        -:  185:			}
+        -:  186:			*a_pos += 1;
+        -:  187:		}
+        -:  188:		if(start_list == false) {
+        -:  189:			*a_pos -= 1;
+        -:  190:		}
+        -:  191:	}
+        -:  192:
+        -:  193:	if((start != 0) && (end != 0) && (start_list == true)) {
+        -:  194:		found_list = true;
+        -:  195:		*a_pos -= increment;
+        -:  196:		start = 1;
+        -:  197:		end = 0;
+        -:  198:		*a_head = NULL;
+        -:  199:		increment = 0;
+        -:  200:	}
+        -:  201:
+        -:  202:	if(found_list == true) {
+        -:  203:		*a_pos += 1;
+        -:  204:		while(**a_pos != ']') {
+        -:  205:			if(!(isspace(**a_pos))) {
+        -:  206:				empty = false;
+        -:  207:			}
+        -:  208:			*a_pos += 1;
+        -:  209:			increment++;
+        -:  210:		}
+        -:  211:		if(empty == true) {
+        -:  212:			while(**a_pos != '\0') {
+        -:  213:				*a_pos += 1;
+        -:  214:			}
+        -:  215:		}
+        -:  216:	}
+        -:  217:
+        -:  218:	if(empty == false) {
+        -:  219:		*a_pos -= increment;
+        -:  220:		*a_head = malloc(sizeof(*(*a_head)));
+        -:  221:		Node* new_node = *a_head;
+        -:  222:		new_node->next = NULL;
+        -:  223:		int time = 0;
+        -:  224:				
+        -:  225:		do{
+        -:  226:			if(**a_pos == ']') {
+        -:  227:				end++;
+        -:  228:				new_node->next = NULL;
+        -:  229:			}
+        -:  230:			else if(**a_pos == '[') {
+        -:  231:				parse_element(&(new_node->element), a_pos);
+        -:  232:				*a_pos -= 1;
+        -:  233:				time = 1;
+        -:  234:			}
+        -:  235:			else {
+        -:  236:				if(**a_pos == ',') {
+        -:  237:					*a_pos += 1;
+        -:  238:					new_node->next = malloc(sizeof(*new_node));
+        -:  239:					new_node = new_node->next;
+        -:  240:				}
+        -:  241:				parse_element(&(new_node->element), a_pos);
+        -:  242:				*a_pos -= 1;
+        -:  243:			}
+        -:  244:			if(time == 0) {
+        -:  245:				*a_pos += 1;
+        -:  246:			}
+        -:  247:			time = 0;
+        -:  248:		}while (start != end);
+        -:  249:	}
+        -:  250:
+        -:  251:	return found_list;
+        -:  252:}
+        -:  253:*/
+        -:  254:
+       11:  255:bool parse_list(Node** a_head, char const** a_pos) {
+        -:  256:
+       11:  257:	bool found_list = false;
+       11:  258:	int increment = 0;
+       11:  259:	int start = 0;
+       11:  260:	int end = 0;
+        -:  261:
+       11:  262:	if(**a_pos != '[') {
+        1:  263:		return found_list;
+        -:  264:	}
+        -:  265:
+        -:  266:	do{
+       70:  267:		if(**a_pos == '[') {
+       10:  268:			start++;
+        -:  269:		}
+       60:  270:		else if(**a_pos == ']') {
+       10:  271:			end++;
+        -:  272:		}
+       70:  273:		*a_pos += 1;
+       70:  274:		increment++;
+       70:  275:	}while((**a_pos != '\0')); 
+        -:  276:
+       10:  277:	if(start == end) {
+        8:  278:		found_list = true;
+        8:  279:		start = 0;
+        8:  280:		end = 0;
+        8:  281:		*a_pos -= increment;
+        -:  282:	}
+        -:  283:	else {
+        2:  284:		start = 0;
+        2:  285:		end = 0;
+        2:  286:		*a_pos -= increment;
+        2:  287:		bool unequal = false;
+        9:  288:		while(unequal == false && **a_pos != '\0') {
+        7:  289:			if(**a_pos == '[') {
+        2:  290:				start++;
+        -:  291:			}
+        5:  292:			else if(**a_pos == ']') {
+        2:  293:				end++;
+        2:  294:				if(end > start) {
+        1:  295:					unequal = true;
+        -:  296:				}
+        -:  297:			}
+        7:  298:			if(unequal == false) {
+        6:  299:				*a_pos += 1;
+        -:  300:			}
+        -:  301:		}
+        2:  302:		return found_list;
+        -:  303:	}
+        -:  304:	
+        8:  305:	bool invalid = false;
+       68:  306:	while(invalid == false && **a_pos != '\0') {
+       60:  307:		if(**a_pos == ',') {
+        7:  308:			*a_pos += 1;
+        7:  309:			if(**a_pos == ',') {
+        1:  310:				invalid = true;
+        1:  311:				found_list = false;
+        -:  312:			}
+        -:  313:			else {
+        6:  314:				*a_pos -= 1;
+        -:  315:			}
+        -:  316:		}
+       60:  317:		if(invalid == false) {
+       59:  318:			*a_pos += 1;
+        -:  319:		}
+        -:  320:	}
+        -:  321:
+        8:  322:	if(found_list == true) {
+        7:  323:		*a_pos -= increment;
+        7:  324:		int entry = 0;
+        7:  325:		Node* new_node = *a_head;
+        -:  326:		do{
+       26:  327:			if(**a_pos == '[') {
+        7:  328:				start++;
+        7:  329:				*a_pos += 1; 
+        7:  330:				if(**a_pos == ']') {
+        1:  331:					*a_head = NULL;
+        -:  332:				}
+        7:  333:				*a_pos -= 1;
+        -:  334:			}
+       19:  335:			else if(**a_pos == ']') {
+        7:  336:				end++;
+        -:  337:			}
+        -:  338:			else {
+       12:  339:				if(entry == 0) {
+        6:  340:					*a_head = malloc(sizeof(*(*a_head)));
+        6:  341:					new_node = *a_head;
+        6:  342:					new_node->next = NULL;
+        6:  343:					entry++;
+        -:  344:				}
+       12:  345:				if(**a_pos == ',') {
+        6:  346:					*a_pos += 1;
+        6:  347:					new_node->next = malloc(sizeof(*new_node));
+        6:  348:					new_node = new_node->next;
+        -:  349:				}
+       12:  350:				parse_element(&(new_node->element), a_pos);
+       12:  351:				*a_pos -= 1;
+        -:  352:			}
+       26:  353:			*a_pos += 1;
+       26:  354:		}while (start != end);
+        -:  355:	}
+        -:  356:
+        8:  357:	return found_list;
+        -:  358:}
+        -:  359:
+        -:  360:/* vim: set tabstop=4 shiftwidth=4 fileencoding=utf-8 noexpandtab: */

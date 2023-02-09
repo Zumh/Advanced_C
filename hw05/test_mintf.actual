@@ -1,0 +1,23 @@
+
+a
+Test
+Test with format.
+There are about 49000 students at Purdue!
+Number in hex: 0x7b.
+Number in binary: 0b1111011.
+@
+$20.00
+50%
+-0b1111011
+-$20.25
+Test for % with nothing after 50%
+Str: Hi Intgr: 20% Bin: 0b1111011 Hex: 0x7b Currency: $1.00 Char: @
+Extra Hello
+INT_MAX $21474836.47
+INT_MIN -$21474836.48
+-2147483648
+Hello New Line!
+Hello 50%word.
+Hello %c.
+Does this work? %d
+Extra 1: -$0.25

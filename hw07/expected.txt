@@ -1,0 +1,3 @@
+count_words("My apples are sweet.") == 4
+count_words("My friend's apples are sweeter.") == 6
+count_words("A pear is sweeter than an apple..") == 8

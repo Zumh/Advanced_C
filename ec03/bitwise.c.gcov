@@ -1,0 +1,91 @@
+        -:    0:Source:bitwise.c
+        -:    0:Programs:1
+        -:    1:#include <stdio.h>
+        -:    2:#include <stdbool.h>
+        -:    3:#include <assert.h>
+        -:    4:#include <stdint.h>
+        -:    5:#include "print_bits.h"
+        -:    6:#include "bitwise.h"
+        -:    7:
+        -:    8:/******************************************************************************************\
+        -:    9: * Instructions:
+        -:   10: *
+        -:   11: * Fill in each function, according to the description following the restrictions below.
+        -:   12: *
+        -:   13: * To compile this file use this command:
+        -:   14: * gcc -o warmup warmup.c print_bits.o
+        -:   15: *
+        -:   16: * RESTRICTIONS:
+        -:   17: * ∙ The body of every function must be exactly one statement, except for print_bits(…)
+        -:   18: *   which must be exactly 3 statements.
+        -:   19: * ∙ Do not use the constant 0xff in create_string_of_eight_1s().  Other functions are fine.
+        -:   20: *   In fact, you *should* use it in other functions.
+        -:   21: *
+        -:   22: * The comments in this file write numbers in bits like this:  11111111₂ or 10111010₂.
+        -:   23: *
+        -:   24: * C11 does not actually accept constants like that. When writing code that uses bit
+        -:   25: * manipulations, always write constants in hexadecimal notation (e.g., 0xff for 11111111₂,
+        -:   26: * 0xBA for 10111010₂), except zero, which you can write as either 0 or 0x00 (your choice).
+        -:   27: *
+        -:   28: * Note:  The last file ends with ".o" not ".c".  It is a compiled "object file".  We are
+        -:   29: * giving you code you can use to diagnose the correctness of your other code, while also
+        -:   30: * asking you to implement the print_bits(…)  function.
+        -:   31: * 
+        -:   32: * The two functions provided by print_bits.o are described in print_bits.h.
+        -:   33: *
+        -:   34: * You may add anything you like to the main(…) function.  If you do not want to use
+        -:   35: * the functions in print_bits.o, you may remove the #include "print_bits.h".
+        -:   36:\******************************************************************************************/
+        -:   37:
+        1:   38:uint8_t create_string_of_eight_1s() {
+        1:   39:	return (~0x00);  
+        -:   40:}
+        -:   41:
+        1:   42:uint8_t create_string_of_0s_at_left(uint8_t num_0s) {
+        1:   43:	return (0xff >> num_0s);
+        -:   44:}
+        -:   45:
+        1:   46:uint8_t create_string_of_0s_at_right(uint8_t num_0s) {
+        1:   47:	return (0xff << num_0s);
+        -:   48:}
+        -:   49:
+        1:   50:uint8_t create_string_of_1s_at_left(uint8_t num_1s) {
+        1:   51:	return (0xff << (8 - num_1s)); 
+        -:   52:}
+        -:   53:
+        1:   54:uint8_t create_string_of_1s_at_right(uint8_t num_1s) {
+        1:   55:	return (0xff >> (8 - num_1s)); 
+        -:   56:}
+        -:   57:
+        1:   58:uint8_t set_left_bits(uint8_t byte, uint8_t num_bits_to_set) {
+        1:   59:	return (byte | (0xff << (8 - num_bits_to_set)));  
+        -:   60:}
+        -:   61:
+        1:   62:uint8_t set_right_bits(uint8_t byte, uint8_t num_bits_to_set) {
+        1:   63:	return (byte | (0xff >> (8 - num_bits_to_set)));
+        -:   64:}
+        -:   65:
+        1:   66:uint8_t unset_left_bits(uint8_t byte, uint8_t num_bits_to_unset) {
+        1:   67:	return (byte & (0xff >> num_bits_to_unset));   
+        -:   68:}
+        -:   69:
+        1:   70:uint8_t unset_right_bits(uint8_t byte, uint8_t num_bits_to_unset) {
+        1:   71:	return (byte & (0xff << num_bits_to_unset)); 
+        -:   72:}
+        -:   73:
+        2:   74:uint8_t toggle_left_bits(uint8_t byte, uint8_t num_bits_to_toggle) {
+        2:   75:	return (byte ^ (0xff << (8 - num_bits_to_toggle)));
+        -:   76:}
+        -:   77:
+        1:   78:uint8_t toggle_right_bits(uint8_t byte, uint8_t num_bits_to_toggle) {
+        1:   79:	return (byte ^ (0xff >> (8 - num_bits_to_toggle)));
+        -:   80:}
+        -:   81:
+        1:   82:void print_bits(uint8_t bits) {
+        9:   83:	for(int i = 0; i < 8; i++) {
+        8:   84:		fputc('0' + (bits % 2 ? 0 : 1), stdout);
+        8:   85:		bits /= 2;
+        -:   86:	}
+        1:   87:}
+        -:   88:
+        -:   89:/* vim: set tabstop=4 shiftwidth=4 fileencoding=utf-8 noexpandtab: */
